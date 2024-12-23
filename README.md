@@ -1,0 +1,1 @@
+# My Fast-API code template for my future projects V.1
