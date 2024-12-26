@@ -8,7 +8,8 @@ load_dotenv()
 
 class Mistral:
     def __init__(self):
-        self.endpoint_url = "https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.3/"
+        # self.endpoint_url = "https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.3/"
+        self.repo_id = "mistralai/Mistral-7B-Instruct-v0.3"
         self.api_token = os.environ.get("HF_API_KEY")
         if not self.api_token:
             raise ValueError("HF_API_KEY environment variable not set")
@@ -16,7 +17,8 @@ class Mistral:
 
     def generate_response(self, prompt: str) -> str:
         llm = HuggingFaceEndpoint(
-            endpoint_url=self.endpoint_url,
+            # endpoint_url=self.endpoint_url,
+            repo_id = self.repo_id,
             max_new_tokens=512,
             top_k=10,
             top_p=0.95,
