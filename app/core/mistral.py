@@ -2,7 +2,8 @@ import time
 from langchain_huggingface import HuggingFaceEndpoint
 from requests.exceptions import HTTPError
 # from langchain.chains import LLMChain
-# from langchain_core.prompts import PromptTemplate
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.output_parsers import StrOutputParser
 import os
 from dotenv import load_dotenv
 
@@ -26,10 +27,10 @@ class Mistral:
             self.initialized = True
 
 
-    def _initialize_llm(self, repo_id, api_token) -> any:
+    def _initialize_llm(self) -> HuggingFaceEndpoint:
         llm = HuggingFaceEndpoint(
             # endpoint_url=self.endpoint_url,
-            repo_id = repo_id,
+            repo_id = self.repo_id,
             max_new_tokens=512,
             top_k=10,
             top_p=0.95,
@@ -37,18 +38,36 @@ class Mistral:
             temperature=0.01,
             repetition_penalty=1.03,
             task="text-generation",
-            huggingfacehub_api_token=api_token,
+            huggingfacehub_api_token= self.api_token,
         )
 
         return llm
-
-    def generate_response(self, prompt: str) -> str:
-        
-        llm = self._initialize_llm(self.repo_id, self.api_token)
     
-        response = llm.invoke(prompt)
+    def _llm_call_output_parser(self, behavior: str, input: str) -> str:
+        llm = self._initialize_llm()
 
-        return response
+        prompt: ChatPromptTemplate = ChatPromptTemplate.from_messages(
+            [
+                ("system", "{behavior}"),
+                ("human", "{input}")
+            ]
+        )
+
+        parser: StrOutputParser = StrOutputParser()
+        chain = prompt | llm | parser
+        
+        return chain.invoke({
+            "behavior": behavior,
+            "input" : input
+        })
+
+
+
+    def generate_response(self, behavior:str, prompt: str) -> str:
+        
+        return self._llm_call_output_parser(behavior, prompt)
+
+        # return response
 
         # for _ in range(5):  # Retry up to 5 times
         #     try:
