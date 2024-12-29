@@ -27,7 +27,7 @@ class Mistral:
             self.initialized = True
 
 
-    def _initialize_llm(self) -> HuggingFaceEndpoint:
+    def _initialize_hf_llm(self) -> HuggingFaceEndpoint:
         llm = HuggingFaceEndpoint(
             # endpoint_url=self.endpoint_url,
             repo_id = self.repo_id,
@@ -44,7 +44,7 @@ class Mistral:
         return llm
     
     def _llm_call_output_parser(self, behavior: str, input: str) -> str:
-        llm = self._initialize_llm()
+        llm = self._initialize_hf_llm()
 
         prompt: ChatPromptTemplate = ChatPromptTemplate.from_messages(
             [
