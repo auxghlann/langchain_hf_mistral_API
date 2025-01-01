@@ -43,7 +43,7 @@ class Mistral:
 
         return llm
     
-    def _llm_call_output_parser(self, behavior: str, input: str) -> str:
+    def _llm_parse_output(self, behavior: str, input: str) -> str:
         llm = self._initialize_hf_llm()
 
         prompt: ChatPromptTemplate = ChatPromptTemplate.from_messages(
@@ -65,7 +65,7 @@ class Mistral:
 
     def generate_response(self, behavior:str, prompt: str) -> str:
         
-        return self._llm_call_output_parser(behavior, prompt)
+        return self._llm_parse_output(behavior, prompt)
 
         # return response
 
