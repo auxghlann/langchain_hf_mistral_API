@@ -1,9 +1,12 @@
 import time
+from typing import Iterator
 from langchain_huggingface import HuggingFaceEndpoint
 from requests.exceptions import HTTPError
 # from langchain.chains import LLMChain
+from langchain_core.documents import Document
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
+from langchain_community.document_loaders.pdf import PyPDFLoader
 import os
 from dotenv import load_dotenv
 
@@ -42,6 +45,26 @@ class Mistral:
         )
 
         return llm
+    
+
+
+
+
+    #TODOLIST:
+    # [load document (pdf)]
+
+    def _get_pdf_document(self, pdf_path: str) -> Iterator[Document]:
+        pdf_doc: PyPDFLoader = PyPDFLoader(file_path="C:\\Users\\Khester Mesa\\Documents\\projects\\langchain_hf_mistral_API\\app\\src\\pdf_resume\\Résumé_Mesa (1).pdf")
+
+        return pdf_doc.lazy_load()
+
+    # [split text]
+
+    def _split_text_from_doc(self, load_doc):
+        ...
+    # [embbed]
+    # [vector store]
+    # call llm
     
     def _llm_parse_output(self, behavior: str, input: str) -> str:
         llm = self._initialize_hf_llm()
