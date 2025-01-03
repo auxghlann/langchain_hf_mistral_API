@@ -54,7 +54,6 @@ class Mistral:
     # [load document (pdf)]
     def __get_pdf_document(self, pdf_path: str) -> Iterator[Document]:
         pdf_doc: PyPDFLoader = PyPDFLoader(file_path=pdf_path)
-
         return pdf_doc.lazy_load()
 
     # [split text]
@@ -63,6 +62,7 @@ class Mistral:
         text_splitter: RecursiveCharacterTextSplitter = \
              RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
         return text_splitter.split_documents(load_doc)
+    
     # [embbed]
 
 
