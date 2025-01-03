@@ -1,8 +1,12 @@
 import time
-from typing import Iterator
+from typing import (
+    Iterator,
+    List
+)
 from langchain_huggingface import HuggingFaceEndpoint
 from requests.exceptions import HTTPError
 # from langchain.chains import LLMChain
+from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_core.documents import Document
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
@@ -30,7 +34,7 @@ class Mistral:
             self.initialized = True
 
 
-    def _initialize_hf_llm(self) -> HuggingFaceEndpoint:
+    def __initialize_hf_llm(self) -> HuggingFaceEndpoint:
         llm = HuggingFaceEndpoint(
             # endpoint_url=self.endpoint_url,
             repo_id = self.repo_id,
@@ -46,27 +50,31 @@ class Mistral:
 
         return llm
     
-
-
-
-
     #TODOLIST:
     # [load document (pdf)]
-
-    def _get_pdf_document(self, pdf_path: str) -> Iterator[Document]:
-        pdf_doc: PyPDFLoader = PyPDFLoader(file_path="C:\\Users\\Khester Mesa\\Documents\\projects\\langchain_hf_mistral_API\\app\\src\\pdf_resume\\Résumé_Mesa (1).pdf")
+    def __get_pdf_document(self, pdf_path: str) -> Iterator[Document]:
+        pdf_doc: PyPDFLoader = PyPDFLoader(file_path=pdf_path)
 
         return pdf_doc.lazy_load()
 
     # [split text]
 
-    def _split_text_from_doc(self, load_doc):
-        ...
+    def __split_text_from_doc(self, load_doc: Iterator[Document]) -> List[Document]:
+        text_splitter: RecursiveCharacterTextSplitter = \
+             RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
+        return text_splitter.split_documents(load_doc)
     # [embbed]
+
+
     # [vector store]
+    # chain document
+
+    #TODO: import create_stuff_document_chain
+    # create chain
+    # create retriever and retrieval chain
     # call llm
     
-    def _llm_parse_output(self, behavior: str, input: str) -> str:
+    def __llm_parse_output(self, behavior: str, input: str) -> str:
         llm = self._initialize_hf_llm()
 
         prompt: ChatPromptTemplate = ChatPromptTemplate.from_messages(
@@ -87,20 +95,23 @@ class Mistral:
 
 
     def generate_response(self, behavior:str, prompt: str) -> str:
-        
-        return self._llm_parse_output(behavior, prompt)
+        pdf_path: str = \
+            "C:\\Users\\Khester Mesa\\Documents\\projects\\langchain_hf_mistral_API\\app\\src\\pdf_resume\\Résumé_Mesa (1).pdf"
+        doc = self.__get_pdf_document(pdf_path=pdf_path)
+        split_text = self.__split_text_from_doc(doc)
 
-        # return response
+        print(len(split_text))
 
-        # for _ in range(5):  # Retry up to 5 times
-        #     try:
-        #         llm_chain = prompt | llm
-        #         response = llm(prompt)
-        #         return response
-        #     except HTTPError as e:
-        #         if e.response.status_code == 429:
-        #             print("Rate limit exceeded. Retrying in 5 seconds...")
-        #             time.sleep(5)
-        #         else:
-        #             raise e
-        # raise Exception("Failed to get a response after 5 retries")
+        # return self._llm_parse_output(behavior, prompt)
+
+    def test_response(self):
+        pdf_path: str = \
+            "C:\\Users\\Khester Mesa\\Documents\\projects\\langchain_hf_mistral_API\\app\\src\\pdf_resume\\Résumé_Mesa (1).pdf"
+        doc = self.__get_pdf_document(pdf_path=pdf_path)
+        split_text = self.__split_text_from_doc(doc)
+
+        print(len(split_text))
+
+        for i in split_text:
+            print(i.page_content)
+
