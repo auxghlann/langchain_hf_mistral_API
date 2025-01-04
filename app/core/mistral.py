@@ -3,7 +3,7 @@ from typing import (
     Iterator,
     List
 )
-from langchain_huggingface import HuggingFaceEndpoint
+from langchain_huggingface import HuggingFaceEndpoint, HuggingFaceEndpointEmbeddings
 from requests.exceptions import HTTPError
 # from langchain.chains import LLMChain
 from langchain.text_splitter import RecursiveCharacterTextSplitter
@@ -45,11 +45,19 @@ class Mistral:
             temperature=0.01,
             repetition_penalty=1.03,
             task="text-generation",
-            huggingfacehub_api_token= self.api_token,
+            huggingfacehub_api_token= self.api_token
         )
 
         return llm
-    
+    def __initialize_hf_llm_embedding(self) -> HuggingFaceEndpointEmbeddings:
+        embedding: HuggingFaceEndpointEmbeddings = \
+            HuggingFaceEndpointEmbeddings(
+                repo_id=self.repo_id,
+                task="text-generation",
+                huggingfacehub_api_token= self.api_token
+            )
+
+        return embedding
     #TODOLIST:
     # [load document (pdf)]
     def __get_pdf_document(self, pdf_path: str) -> Iterator[Document]:
