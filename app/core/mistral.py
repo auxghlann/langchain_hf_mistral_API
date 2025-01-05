@@ -4,13 +4,16 @@ from typing import (
     List
 )
 from langchain_huggingface import HuggingFaceEndpoint, HuggingFaceEndpointEmbeddings
-from requests.exceptions import HTTPError
-# from langchain.chains import LLMChain
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_core.documents import Document
+from langchain_core.runnables.base import Runnable
+from langchain.chains.combine_documents import create_stuff_documents_chain
+from langchain.chains import create_retrieval_chain
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from langchain_community.document_loaders.pdf import PyPDFLoader
+from langchain_community.vectorstores import VectorStore, FAISS
+from langchain.chains.combine_documents import create_stuff_documents_chain
 import os
 from dotenv import load_dotenv
 
@@ -49,32 +52,37 @@ class Mistral:
         )
 
         return llm
-    def __initialize_hf_llm_embedding(self) -> HuggingFaceEndpointEmbeddings:
-        embedding: HuggingFaceEndpointEmbeddings = \
-            HuggingFaceEndpointEmbeddings(
-                repo_id=self.repo_id,
-                task="text-generation",
-                huggingfacehub_api_token= self.api_token
-            )
 
-        return embedding
     #TODOLIST:
+
     # [load document (pdf)]
     def __get_pdf_document(self, pdf_path: str) -> Iterator[Document]:
         pdf_doc: PyPDFLoader = PyPDFLoader(file_path=pdf_path)
         return pdf_doc.lazy_load()
 
     # [split text]
-
     def __split_text_from_doc(self, load_doc: Iterator[Document]) -> List[Document]:
         text_splitter: RecursiveCharacterTextSplitter = \
              RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
         return text_splitter.split_documents(load_doc)
     
     # [embbed]
+    def __initialize_hf_llm_embedding(self) -> HuggingFaceEndpointEmbeddings:
+        model = "sentence-transformers/all-mpnet-base-v2"
+        embedding: HuggingFaceEndpointEmbeddings = \
+            HuggingFaceEndpointEmbeddings(
+                model = model,
+                task = "feature-extraction",
+                huggingfacehub_api_token = self.api_token,
+            )
 
+        return embedding
 
     # [vector store]
+    def __vector_store(self, doc: List[Document], embedding: HuggingFaceEndpointEmbeddings) -> VectorStore:
+        vector_store: VectorStore = FAISS.from_documents(documents=doc, embedding=embedding)
+        return vector_store
+
     # chain document
 
     #TODO: import create_stuff_document_chain
@@ -100,26 +108,51 @@ class Mistral:
             "input" : input
         })
 
+    def __create_document_chain(self, llm: HuggingFaceEndpoint):
+        prompt = ChatPromptTemplate.from_template("""
+                Answer the following question based only on the provided context. 
+                Think step by step before providing a detailed answer. 
+                I will tip you $1000 if the user finds the answer helpful. 
+                <context>
+                {context}
+                </context>
+                Question: {input}""")
+        # Create document chain
+        document_chain = create_stuff_documents_chain(llm, prompt)
 
+        return document_chain
 
-    def generate_response(self, behavior:str, prompt: str) -> str:
+    def __create_retrieval_chain(self, db_vector_store: VectorStore, doc_chain) -> Runnable:
+
+        retriever = db_vector_store.as_retriever()
+        retrieval_chain = create_retrieval_chain(retriever, doc_chain)
+
+        return retrieval_chain
+
+    def generate_response(self, prompt: str) -> str:
+        llm: HuggingFaceEndpoint = self.__initialize_hf_llm()
         pdf_path: str = \
             "C:\\Users\\Khester Mesa\\Documents\\projects\\langchain_hf_mistral_API\\app\\src\\pdf_resume\\Résumé_Mesa (1).pdf"
-        doc = self.__get_pdf_document(pdf_path=pdf_path)
-        split_text = self.__split_text_from_doc(doc)
+        doc: Iterator[Document] = self.__get_pdf_document(pdf_path=pdf_path)
+        split_text: List[Document] = self.__split_text_from_doc(doc)
+        embedding: HuggingFaceEndpointEmbeddings = self.__initialize_hf_llm_embedding()
+        vector_store: VectorStore = self.__vector_store(split_text, embedding)
+        document_chain = self.__create_document_chain(llm=llm)
+        retrieval_chain: Runnable = self.__create_retrieval_chain(
+            db_vector_store=vector_store,
+            doc_chain=document_chain
+        )
+        
+        user_query: str = prompt
 
-        print(len(split_text))
+        response = retrieval_chain.invoke(
+            {
+                "input" : user_query
+            }
+        )
+
+        return response["answer"]
 
         # return self._llm_parse_output(behavior, prompt)
 
-    def test_response(self):
-        pdf_path: str = \
-            "C:\\Users\\Khester Mesa\\Documents\\projects\\langchain_hf_mistral_API\\app\\src\\pdf_resume\\Résumé_Mesa (1).pdf"
-        doc = self.__get_pdf_document(pdf_path=pdf_path)
-        split_text = self.__split_text_from_doc(doc)
-
-        print(len(split_text))
-
-        for i in split_text:
-            print(i.page_content)
 
