@@ -53,14 +53,14 @@ class Mistral:
 
         return llm
 
-    #TODOLIST:
-
     # [load document (pdf)]
     def __get_pdf_document(self, pdf_path: str) -> Iterator[Document]:
         pdf_doc: PyPDFLoader = PyPDFLoader(file_path=pdf_path)
         return pdf_doc.lazy_load()
 
     # [split text]
+    # TODO: replace recursiveCharacterTextSplitter to -> SemanticSplitter
+
     def __split_text_from_doc(self, load_doc: Iterator[Document]) -> List[Document]:
         text_splitter: RecursiveCharacterTextSplitter = \
              RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
@@ -84,31 +84,30 @@ class Mistral:
         return vector_store
 
     # chain document
+    # <deprecated
+    # def __llm_parse_output(self, behavior: str, input: str) -> str:
+    #     llm = self._initialize_hf_llm()
 
-    #TODO: import create_stuff_document_chain
-    # create chain
-    # create retriever and retrieval chain
-    # call llm
-    
-    def __llm_parse_output(self, behavior: str, input: str) -> str:
-        llm = self._initialize_hf_llm()
+    #     prompt: ChatPromptTemplate = ChatPromptTemplate.from_messages(
+    #         [
+    #             ("system", "{behavior}"),
+    #             ("human", "{input}")
+    #         ]
+    #     )
 
-        prompt: ChatPromptTemplate = ChatPromptTemplate.from_messages(
-            [
-                ("system", "{behavior}"),
-                ("human", "{input}")
-            ]
-        )
-
-        parser: StrOutputParser = StrOutputParser()
-        chain = prompt | llm | parser
+    #     parser: StrOutputParser = StrOutputParser()
+    #     chain = prompt | llm | parser
         
-        return chain.invoke({
-            "behavior": behavior,
-            "input" : input
-        })
+    #     return chain.invoke({
+    #         "behavior": behavior,
+    #         "input" : input
+    #     })
+    # # >
 
+    # [create retriever and retrieval chain]
     def __create_document_chain(self, llm: HuggingFaceEndpoint):
+        parser: StrOutputParser = StrOutputParser()
+
         prompt = ChatPromptTemplate.from_template("""
                 Answer the following question based only on the provided context. 
                 Think step by step before providing a detailed answer. 
@@ -118,7 +117,7 @@ class Mistral:
                 </context>
                 Question: {input}""")
         # Create document chain
-        document_chain = create_stuff_documents_chain(llm, prompt)
+        document_chain = create_stuff_documents_chain(llm, prompt, output_parser=parser)
 
         return document_chain
 
@@ -129,6 +128,7 @@ class Mistral:
 
         return retrieval_chain
 
+    # [invoke retriever and get "answer" attr]
     def generate_response(self, prompt: str) -> str:
         llm: HuggingFaceEndpoint = self.__initialize_hf_llm()
         pdf_path: str = \
