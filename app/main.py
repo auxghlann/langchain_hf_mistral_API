@@ -1,9 +1,10 @@
 from fastapi import FastAPI
+from app.routers.rtr_mistral import mistral_router
 #from fastapi.middleware.cors import CORSMiddleware
 #from app.routers import routers
 
 app = FastAPI()
-# app.include_router(//your router)
+app.include_router(mistral_router)
 # app.include_router(//your router)
 
 
