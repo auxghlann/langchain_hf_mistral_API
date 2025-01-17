@@ -129,30 +129,29 @@ class Mistral:
         return retrieval_chain
 
     # [invoke retriever and get "answer" attr]
-    def generate_response(self, prompt: str) -> str:
-        llm: HuggingFaceEndpoint = self.__initialize_hf_llm()
-        pdf_path: str = \
-            "C:\\Users\\Khester Mesa\\Documents\\projects\\langchain_hf_mistral_API\\app\\src\\pdf_resume\\Résumé_Mesa (1).pdf"
-        doc: Iterator[Document] = self.__get_pdf_document(pdf_path=pdf_path)
-        split_text: List[Document] = self.__split_text_from_doc(doc)
-        embedding: HuggingFaceEndpointEmbeddings = self.__initialize_hf_llm_embedding()
-        vector_store: VectorStore = self.__vector_store(split_text, embedding)
-        document_chain = self.__create_document_chain(llm=llm)
-        retrieval_chain: Runnable = self.__create_retrieval_chain(
-            db_vector_store=vector_store,
-            doc_chain=document_chain
-        )
-        
-        user_query: str = prompt
+    def generate_response(self, query: str, pdf_path: str) -> str:
 
-        response = retrieval_chain.invoke(
-            {
-                "input" : user_query
-            }
-        )
+        if query and pdf_path:
+            llm: HuggingFaceEndpoint = self.__initialize_hf_llm()
+            doc: Iterator[Document] = self.__get_pdf_document(pdf_path=pdf_path)
+            split_text: List[Document] = self.__split_text_from_doc(doc)
+            embedding: HuggingFaceEndpointEmbeddings = self.__initialize_hf_llm_embedding()
+            vector_store: VectorStore = self.__vector_store(split_text, embedding)
+            document_chain = self.__create_document_chain(llm=llm)
+            retrieval_chain: Runnable = self.__create_retrieval_chain(
+                db_vector_store=vector_store,
+                doc_chain=document_chain
+            )
 
-        return response["answer"]
+            response = retrieval_chain.invoke(
+                {
+                    "input" : query
+                }
+            )
 
+            return response["answer"]
+
+        raise ValueError("Query and pdf path should not be empty")
         # return self._llm_parse_output(behavior, prompt)
 
 
